@@ -22,3 +22,10 @@ class MessageMetadata:
             character_count=len(content),
             processed_at=datetime.utcnow()
         )
+    
+    def to_dict(self) -> dict:
+        return {
+            "word_count": self.word_count,
+            "character_count": self.character_count,
+            "processed_at": self.processed_at.isoformat()
+        }

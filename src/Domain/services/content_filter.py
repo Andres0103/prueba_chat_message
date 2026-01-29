@@ -21,18 +21,20 @@ class ContentFilterService:
     ]
     
     @classmethod
-    def contains_inappropriate_content(cls, content: str) -> bool:
+    def filter(cls, content: str) -> str:
         """
-        Verifica si el contenido contiene palabras inapropiadas.
-        
-        Args:
-            content: El contenido del mensaje a verificar
-            
-        Returns:
-            True si contiene contenido inapropiado, False en caso contrario
+        Valida y sanitiza el contenido del mensaje.
+
+        Lanza una excepción si el contenido es inapropiado.
         """
+        content = content.strip()
         content_lower = content.lower()
-        return any(word in content_lower for word in cls.INAPPROPRIATE_WORDS)
+
+        for word in cls.INAPPROPRIATE_WORDS:
+            if word in content_lower:
+                raise ValueError(f"Content contains inappropriate word: {word}")
+
+        return content
     
     @classmethod
     def filter_content(cls, content: str) -> Tuple[bool, str]:

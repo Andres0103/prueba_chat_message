@@ -10,7 +10,7 @@ from ..value_objects.sender_type import SenderType
 from ..value_objects.message_metadata import MessageMetadata
 
 
-@dataclass
+@dataclass(frozen=True)
 class MessageEntity:
     """
     Entidad de dominio que representa un mensaje.

@@ -4,7 +4,7 @@ Script para probar la conexión a la base de datos SQLite.
 import sys
 from pathlib import Path
 
-# Add src to path
+# Se añade el path del proyecto al sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
@@ -21,7 +21,7 @@ except ImportError:
     print("O prueba con Docker: docker-compose up --build")
     sys.exit(1)
 
-# Test 2: Import settings and models
+# Test 2: Importar configuración y modelos
 print("\n Test 2: Importando configuración y modelos...")
 try:
     from Infrastructure.config.settings import settings
@@ -34,7 +34,7 @@ except Exception as e:
     print(f"Error importando: {e}")
     sys.exit(1)
 
-# Test 3: Create tables
+# Test 3: Crear tablas
 print("\n Test 3: Creando tablas en la base de datos...")
 try:
     create_tables()
@@ -43,7 +43,7 @@ except Exception as e:
     print(f"Error creando tablas: {e}")
     sys.exit(1)
 
-# Test 4: Verify table creation
+# Test 4: validar la estructura de las tablas que se crearon
 print("\n✓ Test 4: Verificando estructura de tablas...")
 try:
     from sqlalchemy import inspect
@@ -66,16 +66,16 @@ except Exception as e:
     print(f"Error verificando tablas: {e}")
     sys.exit(1)
 
-# Test 5: Test CRUD operations
+# Test 5: Probar operaciones CRUD básicas
 print("\n Test 5: Probando operaciones CRUD...")
 try:
     from sqlalchemy.orm import Session
     from datetime import datetime
     
-    # Create session
+    # Crear una sesión
     session = Session(engine)
     
-    # INSERT: Create a test message
+    # INSERT: Crear un mensaje de prueba
     test_message = MessageModel(
         message_id="test-msg-001",
         session_id="test-session-001",
@@ -91,7 +91,7 @@ try:
     session.commit()
     print("INSERT: Mensaje de prueba insertado")
     
-    # SELECT: Query the message
+    # SELECT: Seleccionar el mensaje insertado
     queried_message = session.query(MessageModel).filter_by(
         message_id="test-msg-001"
     ).first()
@@ -101,17 +101,17 @@ try:
     else:
         print("SELECT: No se pudo recuperar el mensaje")
     
-    # UPDATE: Update the message
+    # UPDATE: Actualizar el mensaje
     queried_message.content = "Contenido actualizado"
     session.commit()
     print("UPDATE: Mensaje actualizado")
     
-    # DELETE: Delete the message
+    # DELETE: Eliminar el mensaje
     session.delete(queried_message)
     session.commit()
     print("DELETE: Mensaje eliminado")
     
-    # Verify deletion
+    # Verificación final: contar mensajes
     count = session.query(MessageModel).count()
     print(f"Verificación: {count} mensajes en la base de datos")
     
