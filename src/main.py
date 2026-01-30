@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from src.Infrastructure.config.settings import settings
 from src.Infrastructure.database.connection import create_tables
 
-from src.API.v1.controllers.message_controller import router as message_router
+from src.API.v1.controllers.message_controller import router
 from src.API.exceptions.handlers import register_exception_handlers
 
 app = FastAPI(
@@ -32,7 +32,7 @@ async def startup_event():
 
 
 # Registrar routers
-app.include_router(message_router)
+app.include_router(router, prefix="/api/v1")
 
 # Registrar handlers de errores
 register_exception_handlers(app)

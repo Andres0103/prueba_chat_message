@@ -4,11 +4,10 @@ from typing import Optional, Dict, List
 
 
 class MessageCreateSchema(BaseModel):
-    message_id: str = Field(..., example="msg-123456")
     session_id: str = Field(..., example="session-abcdef")
     content: str = Field(..., example="Hola, ¿cómo puedo ayudarte hoy?")
-    timestamp: datetime = Field(..., example="2023-06-15T14:30:00Z")
     sender: str = Field(..., example="user")
+
 
 
 class MessageResponseSchema(BaseModel):
@@ -18,6 +17,7 @@ class MessageResponseSchema(BaseModel):
     timestamp: datetime
     sender: str
     metadata: Optional[Dict]
+
 
 
 class PaginatedMessagesSchema(BaseModel):

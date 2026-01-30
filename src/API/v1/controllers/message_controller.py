@@ -13,12 +13,12 @@ from src.Application.dtos.pagination_dto import GetMessagesFilterDTO
 from src.Application.use_cases.create_message_use_case import CreateMessageUseCase
 from src.Application.use_cases.get_messages_use_case import GetMessagesUseCase
 
-from src.Infrastructure.database.connection import get_db
+from src.Infrastructure.database.dependencies import get_db
 from src.Infrastructure.repositories.message_repository_impl import MessageRepositoryImpl
 from src.Domain.services.content_filter import ContentFilterService
 from src.Domain.services.message_processor import MessageProcessor
 
-router = APIRouter(prefix="/api/messages", tags=["Messages"])
+router = APIRouter(prefix="/messages", tags=["Messages"])
 
 def get_create_message_use_case(
     db=Depends(get_db),
