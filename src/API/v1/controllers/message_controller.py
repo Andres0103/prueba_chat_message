@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, HTTPException
+from typing import Optional
 
 from src.API.v1.schemas.message_schema import (
     MessageCreateSchema,
@@ -6,14 +7,14 @@ from src.API.v1.schemas.message_schema import (
     PaginatedMessagesSchema,
 )
 
-from src.API.v1.schemas.response_schema import SuccessResponse
+from src.API.v1.schemas.response_schema import SuccessResponse, ErrorResponse
 
 from src.Application.dtos.message_dto import CreateMessageDTO
 from src.Application.dtos.pagination_dto import GetMessagesFilterDTO
 from src.Application.use_cases.create_message_use_case import CreateMessageUseCase
 from src.Application.use_cases.get_messages_use_case import GetMessagesUseCase
 
-from src.Infrastructure.database.dependencies import get_db
+from src.Infrastructure.database.connection import get_db
 from src.Infrastructure.repositories.message_repository_impl import MessageRepositoryImpl
 from src.Domain.services.content_filter import ContentFilterService
 from src.Domain.services.message_processor import MessageProcessor
@@ -49,19 +50,34 @@ def create_message(
     payload: MessageCreateSchema,
     use_case: CreateMessageUseCase = Depends(get_create_message_use_case),
 ):
-    dto = CreateMessageDTO(
-        message_id=payload.message_id,
-        session_id=payload.session_id,
-        content=payload.content,
-        timestamp=payload.timestamp,
-        sender=payload.sender,
-    )
+    try:
+        dto = CreateMessageDTO(
+            message_id=payload.message_id,
+            session_id=payload.session_id,
+            content=payload.content,
+            timestamp=payload.timestamp,
+            sender=payload.sender,
+        )
 
-    result = use_case.execute(dto)
+        result = use_case.execute(dto)
 
-    return SuccessResponse(
-        data=MessageResponseSchema(**result.__dict__)
-    )
+        return SuccessResponse(
+            data=MessageResponseSchema(**result.__dict__)
+        )
+    except ValueError as e:
+        # Content filtering or validation errors
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        # Unexpected errors
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
 
 
 @router.get(
@@ -73,7 +89,7 @@ def get_messages(
     session_id: str,
     limit: int = Query(default=20, ge=1, le=100, description="Límite de mensajes por página"),
     offset: int = Query(default=0, ge=0, description="Desplazamiento para paginación"),
-    sender: str = Query(default=None, description="Filtro opcional por remitente"),
+    sender: Optional[str] = Query(default=None, description="Filtro opcional por remitente"),
     use_case: GetMessagesUseCase = Depends(get_get_messages_use_case),
 ):
     """
@@ -83,31 +99,73 @@ def get_messages(
     - Paginación mediante limit y offset
     - Filtrado por remitente
     """
-    filters = GetMessagesFilterDTO(
-        session_id=session_id,
-        limit=limit,
-        offset=offset,
-        sender=sender,
-    )
+    try:
+        filters = GetMessagesFilterDTO(
+            session_id=session_id,
+            limit=limit,
+            offset=offset,
+            sender=sender,
+        )
 
-    result = use_case.execute(filters)
+        result = use_case.execute(filters)
+        
+        # Convertir DTOs a schemas
+        paginated_response = PaginatedMessagesSchema(
+            items=[
+                MessageResponseSchema(
+                    message_id=msg.message_id,
+                    session_id=msg.session_id,
+                    content=msg.content,
+                    timestamp=msg.timestamp,
+                    sender=msg.sender,
+                    metadata=msg.metadata,
+                )
+                for msg in result.items
+            ],
+            limit=result.limit,
+            offset=result.offset,
+            total=result.total,
+        )
+
+        return SuccessResponse(data=paginated_response)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        )
+
+
+@router.get(
+    "/debug/all",
+    response_model=SuccessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def debug_all_messages(
+    db = Depends(get_db),
+):
+    """
+    Endpoint de debug para ver todos los mensajes en la BD.
+    """
+    from src.Infrastructure.database.models import MessageModel
     
-    # Convertir DTOs a schemas
-    paginated_response = PaginatedMessagesSchema(
-        items=[
-            MessageResponseSchema(
-                message_id=msg.message_id,
-                session_id=msg.session_id,
-                content=msg.content,
-                timestamp=msg.timestamp,
-                sender=msg.sender,
-                metadata=msg.metadata,
-            )
-            for msg in result.items
-        ],
-        limit=result.limit,
-        offset=result.offset,
-        total=result.total,
+    all_messages = db.query(MessageModel).all()
+    
+    return SuccessResponse(
+        data={
+            "total_count": len(all_messages),
+            "messages": [
+                {
+                    "message_id": msg.message_id,
+                    "session_id": msg.session_id,
+                    "content": msg.content,
+                    "sender": msg.sender,
+                }
+                for msg in all_messages
+            ]
+        }
     )
-
-    return SuccessResponse(data=paginated_response)

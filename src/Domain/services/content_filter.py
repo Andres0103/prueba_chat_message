@@ -1,10 +1,21 @@
 #Importante: Este archivo define el servicio de dominio para filtrar contenido inapropiado.
-from typing import List, Tuple
 from src.Application.interfaces.content_filter_interface import ContentFilterInterface
 
 #Servicio de dominio para filtrar contenido inapropiado, heredando de la interfaz definida para el filtro de contenido
-class ContentFilterService:
+class ContentFilterService(ContentFilterInterface):
     INAPPROPRIATE_WORDS = {"spam", "malware", "hack"}
+
+    def filter(self, content: str) -> str:
+        """
+        Valida y sanitiza el contenido.
+        Lanza excepción si el contenido es inválido.
+        """
+        sanitized = self.sanitize_content(content)
+        
+        if self.contains_inappropriate_content(sanitized):
+            raise ValueError("Content contains inappropriate words")
+        
+        return sanitized
 
     @classmethod
     def contains_inappropriate_content(cls, content: str) -> bool:

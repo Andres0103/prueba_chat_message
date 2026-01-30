@@ -25,10 +25,26 @@ class CreateMessageUseCase:
         """
         Ejecuta el flujo de creación del mensaje.
         """
+        # Validación de campos requeridos
+        if not dto.message_id or not dto.message_id.strip():
+            raise ValueError("message_id cannot be empty")
+        
+        if not dto.session_id or not dto.session_id.strip():
+            raise ValueError("session_id cannot be empty")
+        
+        if not dto.content or not dto.content.strip():
+            raise ValueError("content cannot be empty")
+        
         # Convertir DTO a entidad
         sender = SenderType(dto.sender)
+        
         # Aplicar filtro de contenido
         filtered_content = self.content_filter.filter(dto.content)
+        
+        # Validar que contenido no esté vacío después del filtrado
+        if not filtered_content or not filtered_content.strip():
+            raise ValueError("content cannot be empty")
+        
         # Crear entidad de mensaje
         message = MessageEntity(
             message_id=dto.message_id,

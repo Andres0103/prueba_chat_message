@@ -19,11 +19,28 @@ class GetMessagesUseCase:
         Returns:
             DTO de paginación con los mensajes encontrados
         """
+        # Validación de campos requeridos
+        if not filters.session_id or not filters.session_id.strip():
+            raise ValueError("session_id cannot be empty")
+        
+        # Validación de límite
+        if filters.limit and filters.limit < 0:
+            raise ValueError("limit must be positive")
+        
+        # Validación de offset
+        if filters.offset is not None and filters.offset < 0:
+            raise ValueError("offset must be non-negative")
+        
+        # Aplicar valor por defecto de límite si es 0
+        limit = filters.limit if filters.limit and filters.limit > 0 else 10
+        
+        # Asegurar que el límite no exceda 100
+        limit = min(limit, 100)
 
         messages = self.repository.get_by_session(
             session_id=filters.session_id,
-            limit=filters.limit,
-            offset=filters.offset,
+            limit=limit,
+            offset=filters.offset or 0,
             sender=filters.sender,
         )
 
@@ -47,7 +64,7 @@ class GetMessagesUseCase:
         ]
         return PaginationDTO(
             items=message_dtos,
-            limit=filters.limit,
-            offset=filters.offset,
+            limit=limit,
+            offset=filters.offset or 0,
             total=total,
         )
