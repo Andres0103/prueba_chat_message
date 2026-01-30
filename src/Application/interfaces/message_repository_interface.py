@@ -1,12 +1,11 @@
+#Importante: Este archivo define la interfaz para el repositorio de mensajes.
+#Importar las librerías necesarias
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from src.Domain.entities.message_entity import MessageEntity
 
+#Clase que define la interfaz del repositorio de mensajes - Define el contrato para la persistencia de mensajes
 class MessageRepositoryInterface(ABC):
-    """
-    Interface que define el contrato para la persistencia de mensajes.
-    Implementaciones concretas viven en infrastructure.
-    """
 
     @abstractmethod
     def save(self, message: MessageEntity) -> MessageEntity:
@@ -25,5 +24,16 @@ class MessageRepositoryInterface(ABC):
     ) -> List[MessageEntity]:
         """
         Obtiene mensajes por sesión con paginación y filtro opcional por remitente.
+        """
+        pass
+
+    @abstractmethod
+    def count_by_session(
+        self,
+        session_id: str,
+        sender: Optional[str] = None
+    ) -> int:
+        """
+        Cuenta el total de mensajes en una sesión, opcionalmente filtrados por remitente.
         """
         pass

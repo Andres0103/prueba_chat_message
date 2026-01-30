@@ -1,13 +1,12 @@
+#Importar los módulos necesarios
+
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from src.API.v1.schemas.error_schema import ErrorResponse, ErrorDetail
 
-
+#Función para registrar los handlers de excepciones
 def register_exception_handlers(app: FastAPI) -> None:
-    """
-    Registra los handlers globales de excepciones.
-    """
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
@@ -15,8 +14,9 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             content=ErrorResponse(
                 error=ErrorDetail(
-                    code="INVALID_CONTENT",
+                    code="INVALID_FORMAT",
                     message=str(exc),
+                    details=str(exc),
                 )
             ).dict()
         )

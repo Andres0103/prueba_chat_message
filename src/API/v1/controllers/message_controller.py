@@ -1,17 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status, Query
 
 from src.API.v1.schemas.message_schema import (
     MessageCreateSchema,
     MessageResponseSchema,
+    PaginatedMessagesSchema,
 )
 
-from src.API.v1.schemas.error_schema import ErrorResponse
 from src.API.v1.schemas.response_schema import SuccessResponse
 
 from src.Application.dtos.message_dto import CreateMessageDTO
+from src.Application.dtos.pagination_dto import GetMessagesFilterDTO
 from src.Application.use_cases.create_message_use_case import CreateMessageUseCase
+from src.Application.use_cases.get_messages_use_case import GetMessagesUseCase
 
-from src.Infrastructure.database.connection import get_db as get_db_session
+from src.Infrastructure.database.connection import get_db
 from src.Infrastructure.repositories.message_repository_impl import MessageRepositoryImpl
 from src.Domain.services.content_filter import ContentFilterService
 from src.Domain.services.message_processor import MessageProcessor
@@ -19,17 +21,24 @@ from src.Domain.services.message_processor import MessageProcessor
 router = APIRouter(prefix="/api/messages", tags=["Messages"])
 
 def get_create_message_use_case(
-    db=Depends(get_db_session),
+    db=Depends(get_db),
 ) -> CreateMessageUseCase:
     repository = MessageRepositoryImpl(db)
-    content_filter = ContentFilterService()
     processor = MessageProcessor()
 
     return CreateMessageUseCase(
         repository=repository,
-        content_filter=content_filter,
+        content_filter=ContentFilterService(),
         message_processor=processor,
     )
+
+
+def get_get_messages_use_case(
+    db=Depends(get_db),
+) -> GetMessagesUseCase:
+    repository = MessageRepositoryImpl(db)
+    return GetMessagesUseCase(repository=repository)
+
 
 @router.post(
     "",
@@ -40,23 +49,65 @@ def create_message(
     payload: MessageCreateSchema,
     use_case: CreateMessageUseCase = Depends(get_create_message_use_case),
 ):
-    try:
-        dto = CreateMessageDTO(
-            message_id=payload.message_id,
-            session_id=payload.session_id,
-            content=payload.content,
-            timestamp=payload.timestamp,
-            sender=payload.sender,
-        )
+    dto = CreateMessageDTO(
+        message_id=payload.message_id,
+        session_id=payload.session_id,
+        content=payload.content,
+        timestamp=payload.timestamp,
+        sender=payload.sender,
+    )
 
-        result = use_case.execute(dto)
+    result = use_case.execute(dto)
 
-        return SuccessResponse(
-            data=MessageResponseSchema(**result.__dict__)
-        )
+    return SuccessResponse(
+        data=MessageResponseSchema(**result.__dict__)
+    )
 
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+
+@router.get(
+    "/{session_id}",
+    response_model=SuccessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_messages(
+    session_id: str,
+    limit: int = Query(default=20, ge=1, le=100, description="Límite de mensajes por página"),
+    offset: int = Query(default=0, ge=0, description="Desplazamiento para paginación"),
+    sender: str = Query(default=None, description="Filtro opcional por remitente"),
+    use_case: GetMessagesUseCase = Depends(get_get_messages_use_case),
+):
+    """
+    Obtiene todos los mensajes para una sesión dada.
+    
+    Soporta:
+    - Paginación mediante limit y offset
+    - Filtrado por remitente
+    """
+    filters = GetMessagesFilterDTO(
+        session_id=session_id,
+        limit=limit,
+        offset=offset,
+        sender=sender,
+    )
+
+    result = use_case.execute(filters)
+    
+    # Convertir DTOs a schemas
+    paginated_response = PaginatedMessagesSchema(
+        items=[
+            MessageResponseSchema(
+                message_id=msg.message_id,
+                session_id=msg.session_id,
+                content=msg.content,
+                timestamp=msg.timestamp,
+                sender=msg.sender,
+                metadata=msg.metadata,
+            )
+            for msg in result.items
+        ],
+        limit=result.limit,
+        offset=result.offset,
+        total=result.total,
+    )
+
+    return SuccessResponse(data=paginated_response)

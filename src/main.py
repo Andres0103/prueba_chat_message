@@ -1,6 +1,4 @@
-"""
-Main application entry point.
-"""
+#Importante: Este archivo es el punto de entrada principal de la aplicación FastAPI.
 from fastapi import FastAPI
 
 from src.Infrastructure.config.settings import settings
@@ -19,8 +17,18 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup."""
     create_tables()
+
+    base_url = f"http://{settings.HOST}:{settings.PORT}"
+
+    print("=" * 60)
+    print(f"{settings.APP_NAME} v{settings.APP_VERSION} started")
+    print(f"API Base URL:      {base_url}")
+    print(f"Swagger Docs:     {base_url}/docs")
+    print(f"ReDoc Docs:       {base_url}/redoc")
+    print(f"Database URL:     {settings.DATABASE_URL}")
+    print("=" * 60)
+
 
 
 # Registrar routers
