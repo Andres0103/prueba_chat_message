@@ -14,7 +14,7 @@ app = FastAPI(
     description="API RESTful para procesamiento de mensajes de chat"
 )
 
-
+# Evento de inicio de la aplicación FastAPI 
 @app.on_event("startup")
 async def startup_event():
     create_tables()
@@ -37,7 +37,7 @@ app.include_router(router, prefix="/api/v1")
 # Registrar handlers de errores
 register_exception_handlers(app)
 
-
+# Endpoint raíz
 @app.get("/")
 async def root():
     return {
@@ -47,7 +47,7 @@ async def root():
         "docs": "/docs",
     }
 
-
+# Endpoint de verificación de salud. Se implementa para monitoreo.
 @app.get("/health")
 async def health_check():
     return {

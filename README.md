@@ -2,7 +2,7 @@
 
 API RESTful para procesamiento de mensajes de chat construida con **FastAPI**, **SQLAlchemy** y siguiendo los principios de **Clean Architecture**.
 
-## 📋 Descripción General
+## Descripción General
 
 Chat Message API es una aplicación backend que permite:
 
@@ -14,18 +14,18 @@ Chat Message API es una aplicación backend que permite:
 
 ### Características Principales
 
-✅ **Validación robusta** de datos de entrada  
-✅ **Filtrado de contenido** intelligent (spam, malware, hack)  
-✅ **Paginación** flexible de mensajes  
-✅ **Filtrado por remitente** (usuario/sistema)  
-✅ **Metadatos automáticos** (fecha/hora, conteos)  
-✅ **Manejo de errores** completo con códigos HTTP apropiados  
-✅ **78 tests** con 89% de cobertura de código  
-✅ **Documentación interactiva** (Swagger UI y ReDoc)  
+**Validación robusta** de datos de entrada  
+**Filtrado de contenido** intelligent (spam, malware, hack)  
+**Paginación** flexible de mensajes  
+**Filtrado por remitente** (usuario/sistema)  
+**Metadatos automáticos** (fecha/hora, conteos)  
+**Manejo de errores** completo con códigos HTTP apropiados  
+**78 tests** con 89% de cobertura de código  
+**Documentación interactiva** (Swagger UI y ReDoc)  
 
 ---
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 El proyecto sigue **Clean Architecture** con 4 capas independientes:
 
@@ -60,7 +60,7 @@ src/
 
 ---
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 ### Requisitos Previos
 
@@ -144,7 +144,7 @@ La API estará disponible en: **http://localhost:8000**
 
 ---
 
-## 📚 Documentación de API
+## Documentación de API
 
 ### Endpoints Disponibles
 
@@ -669,7 +669,7 @@ DATABASE_URL=postgresql://user:password@localhost:5432/chat_db
 
 ---
 
-## 👨 Guía de Desarrollo
+## Guía de Desarrollo
 
 ### Crear una Nueva Feature
 

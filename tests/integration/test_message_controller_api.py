@@ -1,17 +1,13 @@
-"""
-Integration tests for MessageController API endpoints.
-Tests cover: POST/GET endpoints, validation, filtering, pagination, and error handling.
-"""
+#Test para el endpoint de mensajes de la API
 import pytest
 from datetime import datetime
 
-
+#Test para el endpoint POST /api/v1/messages
 class TestMessageControllerPostEndpoint:
-    """Tests for POST /api/v1/messages endpoint."""
 
-    def test_post_message_with_valid_data_returns_201(self, client_with_db):
-        """Should create a message and return HTTP 201 Created."""
-        # Arrange
+    #Debe crear un mensaje y devolver HTTP 201 Created
+    def test_post_mensaje_con_datos_validos_devuelve_201(self, client_with_db):
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-001",
@@ -21,10 +17,10 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 201
         data = response.json()
         assert data["data"]["message_id"] == "msg-001"
@@ -32,9 +28,10 @@ class TestMessageControllerPostEndpoint:
         assert data["data"]["content"] == "Hello world"
         assert data["data"]["sender"] == "user"
 
+    #Debe devolver respuesta con metadatos (word_count, character_count)
     def test_post_message_returns_response_with_metadata(self, client_with_db):
         """Should return response with metadata (word_count, character_count)."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-002",
@@ -44,19 +41,19 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 201
         data = response.json()
         assert "metadata" in data["data"]
         assert data["data"]["metadata"]["word_count"] == 2
         assert data["data"]["metadata"]["character_count"] == 12
 
+    #Debe devolver HTTP 422 Unprocessable Entity cuando falta message_id
     def test_post_message_missing_message_id_returns_422(self, client_with_db):
-        """Should return HTTP 422 Unprocessable Entity when message_id is missing."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "session_id": "session-abc",
@@ -65,15 +62,15 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 422
 
+    #Debe devolver HTTP 400 Bad Request para tipo de remitente no válido
     def test_post_message_with_invalid_sender_returns_400(self, client_with_db):
-        """Should return HTTP 400 Bad Request for invalid sender type."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-001",
@@ -83,15 +80,15 @@ class TestMessageControllerPostEndpoint:
             "sender": "invalid"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 400
 
+    #Debe devolver HTTP 400 Bad Request cuando el contenido contiene palabras filtradas
     def test_post_message_with_spam_content_returns_400(self, client_with_db):
-        """Should return HTTP 400 when content contains filtered words like 'spam'."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-003",
@@ -101,15 +98,15 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 400
 
+    #Debe devolver HTTP 400 Bad Request cuando el contenido contiene 'malware'
     def test_post_message_with_malware_content_returns_400(self, client_with_db):
-        """Should return HTTP 400 when content contains 'malware'."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-004",
@@ -119,15 +116,15 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 400
 
+    #Debe devolver HTTP 400 Bad Request cuando el contenido contiene 'hack'
     def test_post_message_with_hack_content_returns_400(self, client_with_db):
-        """Should return HTTP 400 when content contains 'hack'."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-005",
@@ -137,15 +134,15 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 400
 
+    #Debe aceptar 'user' como remitente válido
     def test_post_message_with_valid_user_sender(self, client_with_db):
-        """Should accept 'user' as valid sender."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-006",
@@ -155,15 +152,15 @@ class TestMessageControllerPostEndpoint:
             "sender": "user"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 201
 
+    #Debe aceptar 'system' como remitente válido
     def test_post_message_with_valid_system_sender(self, client_with_db):
-        """Should accept 'system' as valid sender."""
-        # Arrange
+        # Arrange, preparar los datos necesarios para la prueba
         client = client_with_db
         payload = {
             "message_id": "msg-007",
@@ -173,20 +170,19 @@ class TestMessageControllerPostEndpoint:
             "sender": "system"
         }
 
-        # Act
+        # Act, ejecutar la acción que se va a probar
         response = client.post("/api/v1/messages", json=payload)
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 201
         assert response.json()["data"]["sender"] == "system"
 
-
+#Test para el endpoint GET /api/v1/messages/{session_id}
 class TestMessageControllerGetEndpoint:
-    """Tests for GET /api/v1/messages/{session_id} endpoint."""
 
+    #Debe recuperar mensajes para una sesión específica y devolver HTTP 200 OK
     def test_get_messages_for_session_returns_200(self, client_with_db):
-        """Should retrieve messages for a specific session."""
-        # Arrange - Create a message first
+        # Arrange, crear un mensaje para la sesión
         client = client_with_db
         create_payload = {
             "message_id": "msg-001",
@@ -197,10 +193,10 @@ class TestMessageControllerGetEndpoint:
         }
         client.post("/api/v1/messages", json=create_payload)
 
-        # Act - Get messages for that session
+        # Act, recuperar los mensajes para la sesión
         response = client.get("/api/v1/messages/session-abc")
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 200
         data = response.json()
         assert "data" in data
@@ -208,22 +204,22 @@ class TestMessageControllerGetEndpoint:
         assert len(data["data"]["items"]) == 1
         assert data["data"]["items"][0]["message_id"] == "msg-001"
 
+    #Debe devolver un array vacío para una sesión no existente
     def test_get_messages_returns_empty_array_for_non_existent_session(self, client_with_db):
-        """Should return empty items array for non-existent session."""
-        # Arrange
+        # Arrange, preparar el cliente
         client = client_with_db
 
-        # Act
+        # Act, intentar recuperar mensajes para una sesión no existente
         response = client.get("/api/v1/messages/nonexistent-session")
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 200
         data = response.json()
         assert data["data"]["items"] == []
 
+    #Debe respetar el parámetro de consulta 'limit'
     def test_get_messages_with_limit_query_param(self, client_with_db):
-        """Should respect limit query parameter."""
-        # Arrange - Create multiple messages
+        # Arrange, preparar el cliente
         client = client_with_db
         for i in range(5):
             payload = {
@@ -235,17 +231,17 @@ class TestMessageControllerGetEndpoint:
             }
             client.post("/api/v1/messages", json=payload)
 
-        # Act
+        # Act, realizar la solicitud con el parámetro limit
         response = client.get("/api/v1/messages/session-abc?limit=2")
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]["items"]) == 2
 
+    #Debe respetar el parámetro de consulta 'offset'
     def test_get_messages_with_offset_query_param(self, client_with_db):
-        """Should respect offset query parameter."""
-        # Arrange - Create multiple messages
+        # Arrange, crear varios mensajes
         client = client_with_db
         for i in range(3):
             payload = {
@@ -257,17 +253,17 @@ class TestMessageControllerGetEndpoint:
             }
             client.post("/api/v1/messages", json=payload)
 
-        # Act
+        # Act, realizar la solicitud con el parámetro offset
         response = client.get("/api/v1/messages/session-abc?offset=2")
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]["items"]) == 1
 
+    #Debe filtrar mensajes por remitente 'user'
     def test_get_messages_with_sender_filter_user(self, client_with_db):
-        """Should filter messages by sender 'user'."""
-        # Arrange - Create messages from different senders
+        # Arrange, crear mensajes con diferentes remitentes
         client = client_with_db
         payloads = [
             {
@@ -288,18 +284,18 @@ class TestMessageControllerGetEndpoint:
         for payload in payloads:
             client.post("/api/v1/messages", json=payload)
 
-        # Act
+        # Act, realizar la solicitud con el filtro de remitente
         response = client.get("/api/v1/messages/session-abc?sender=user")
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]["items"]) == 1
         assert data["data"]["items"][0]["sender"] == "user"
 
+    #Debe devolver solo los mensajes de la sesión solicitada
     def test_get_messages_returns_only_requested_session(self, client_with_db):
-        """Should only return messages from the requested session."""
-        # Arrange - Create messages in different sessions
+        # Arrange, crear mensajes para diferentes sesiones
         client = client_with_db
         payloads = [
             {
@@ -320,18 +316,18 @@ class TestMessageControllerGetEndpoint:
         for payload in payloads:
             client.post("/api/v1/messages", json=payload)
 
-        # Act
+        # Act, realizar la solicitud para la sesión 1
         response = client.get("/api/v1/messages/session-1")
 
-        # Assert
+        # Assert, verificar que el resultado es el esperado
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]["items"]) == 1
         assert data["data"]["items"][0]["session_id"] == "session-1"
 
+    #Debe incluir metadatos en los elementos de la respuesta
     def test_get_messages_includes_metadata_in_response(self, client_with_db):
-        """Should include metadata in response items."""
-        # Arrange
+        # Arrange, crear un mensaje con metadatos
         client = client_with_db
         payload = {
             "message_id": "msg-001",
@@ -342,10 +338,10 @@ class TestMessageControllerGetEndpoint:
         }
         client.post("/api/v1/messages", json=payload)
 
-        # Act
+        # Act, realizar la solicitud
         response = client.get("/api/v1/messages/session-abc")
 
-        # Assert
+        # Assert, verifica
         assert response.status_code == 200
         data = response.json()
         assert len(data["data"]["items"]) == 1

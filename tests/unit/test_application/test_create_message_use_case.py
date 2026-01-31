@@ -1,7 +1,4 @@
-"""
-Unit tests for CreateMessageUseCase.
-Tests cover: success cases, validation failures, error handling, and edge cases.
-"""
+#Test para la creación de mensajes en la aplicación
 import pytest
 from datetime import datetime
 from unittest.mock import Mock, MagicMock
@@ -12,13 +9,12 @@ from src.Domain.entities.message_entity import MessageEntity
 from src.Domain.value_objects.sender_type import SenderType
 from src.Domain.value_objects.message_metadata import MessageMetadata
 
-
+#Test para la creación de mensajes en la aplicación
 class TestCreateMessageUseCaseSuccess:
-    """Tests for successful message creation."""
 
+    #Debe crear un mensaje con datos válidos y devolver MessageResponseDTO
     def test_create_message_with_valid_data_returns_response_dto(self):
-        """Should create a message successfully and return MessageResponseDTO."""
-        # Arrange
+        # Arrange, prepare los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -32,7 +28,7 @@ class TestCreateMessageUseCaseSuccess:
             sender="user"
         )
 
-        # Mock the return values
+        # Act, configura los mocks para devolver valores esperados
         content_filter.filter.return_value = "Hello world"
 
         saved_entity = MessageEntity(
@@ -57,10 +53,10 @@ class TestCreateMessageUseCaseSuccess:
             message_processor=message_processor
         )
 
-        # Act
+        # Act, ejecuta el caso de uso
         result = use_case.execute(dto)
 
-        # Assert
+        # Assert, verifica que el resultado sea correcto
         assert result is not None
         assert isinstance(result, MessageResponseDTO)
         assert result.message_id == "msg-123"
@@ -71,9 +67,9 @@ class TestCreateMessageUseCaseSuccess:
         assert result.metadata["word_count"] == 2
         assert result.metadata["character_count"] == 11
 
+    #Debe llamar al filtro de contenido para validar el contenido del mensaje
     def test_create_message_calls_content_filter(self):
-        """Should call content filter to validate message content."""
-        # Arrange
+        # Arrange, prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -88,7 +84,7 @@ class TestCreateMessageUseCaseSuccess:
             sender="user"
         )
 
-        # Mock entity and save
+        # Mock para el entity devuelto
         entity = MessageEntity(
             message_id="msg-123",
             session_id="session-abc",
@@ -105,15 +101,15 @@ class TestCreateMessageUseCaseSuccess:
             message_processor=message_processor
         )
 
-        # Act
+        # Act, ejecuta el caso de uso
         use_case.execute(dto)
 
-        # Assert
+        # Assert, verifica que el filtro de contenido fue llamado
         content_filter.filter.assert_called_once_with("test content")
 
+    #Debe llamar al procesador de mensajes para agregar metadatos
     def test_create_message_calls_message_processor(self):
-        """Should call message processor to add metadata."""
-        # Arrange
+        # Arrange, prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -144,15 +140,15 @@ class TestCreateMessageUseCaseSuccess:
             message_processor=message_processor
         )
 
-        # Act
+        # Act, ejecuta el caso de uso
         use_case.execute(dto)
 
-        # Assert
+        # Assert, verifica que el procesador de mensajes fue llamado
         message_processor.process.assert_called_once()
 
+    #Debe guardar el mensaje procesado en el repositorio
     def test_create_message_persists_to_repository(self):
-        """Should save the processed message to the repository."""
-        # Arrange
+        # Arrange, prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -183,15 +179,14 @@ class TestCreateMessageUseCaseSuccess:
             message_processor=message_processor
         )
 
-        # Act
+        # Act, ejecuta el caso de uso
         use_case.execute(dto)
 
-        # Assert
+        # Assert, verifica que el repositorio guardó el mensaje
         repository.save.assert_called_once()
 
-
+#Tests para la validación del contenido durante la creación de mensajes
 class TestCreateMessageUseCaseContentFiltering:
-    """Tests for content filtering during message creation."""
 
     def test_create_message_with_inappropriate_content_raises_error(self):
         """Should raise ValueError when content contains inappropriate words."""

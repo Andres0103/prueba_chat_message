@@ -2,7 +2,7 @@
 #Importar las librerías necesarias
 from abc import ABC, abstractmethod
 
-#Construir la interfaz de filtrado de contenido - Interface para servicios de filtrado de contenido
+#Construida la interfaz de filtrado de contenido - Interface para servicios de filtrado de contenido
 class ContentFilterInterface(ABC):
     @abstractmethod
     def filter(self, content: str) -> str:

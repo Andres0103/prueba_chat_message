@@ -18,9 +18,11 @@ from src.Infrastructure.database.connection import get_db
 from src.Infrastructure.repositories.message_repository_impl import MessageRepositoryImpl
 from src.Domain.services.content_filter import ContentFilterService
 from src.Domain.services.message_processor import MessageProcessor
+from src.Infrastructure.database.models import MessageModel
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
+# Dependencias de casos de uso. Inyección de dependencias manual.
 def get_create_message_use_case(
     db=Depends(get_db),
 ) -> CreateMessageUseCase:
@@ -46,6 +48,8 @@ def get_get_messages_use_case(
     response_model=SuccessResponse,
     status_code=status.HTTP_201_CREATED,
 )
+
+#función para crear un mensaje con payload y caso de uso
 def create_message(
     payload: MessageCreateSchema,
     use_case: CreateMessageUseCase = Depends(get_create_message_use_case),
@@ -85,6 +89,8 @@ def create_message(
     response_model=SuccessResponse,
     status_code=status.HTTP_200_OK,
 )
+
+#Funcion para obtener mensajes con paginación y filtrado
 def get_messages(
     session_id: str,
     limit: int = Query(default=20, ge=1, le=100, description="Límite de mensajes por página"),
@@ -92,13 +98,7 @@ def get_messages(
     sender: Optional[str] = Query(default=None, description="Filtro opcional por remitente"),
     use_case: GetMessagesUseCase = Depends(get_get_messages_use_case),
 ):
-    """
-    Obtiene todos los mensajes para una sesión dada.
-    
-    Soporta:
-    - Paginación mediante limit y offset
-    - Filtrado por remitente
-    """
+    #Obtener mensajes con paginación y filtro opcional por remitente
     try:
         filters = GetMessagesFilterDTO(
             session_id=session_id,
@@ -136,10 +136,11 @@ def get_messages(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred"
+            detail=str(e)
         )
 
-
+# Endpoint de debug para ver todos los mensajes en la BD.
+#Se agregói con propósito de desarrollo y pruebas.
 @router.get(
     "/debug/all",
     response_model=SuccessResponse,
@@ -148,10 +149,8 @@ def get_messages(
 def debug_all_messages(
     db = Depends(get_db),
 ):
-    """
-    Endpoint de debug para ver todos los mensajes en la BD.
-    """
-    from src.Infrastructure.database.models import MessageModel
+    
+    #Obtenemos todos los mensajes de la base de datos y los retornamos
     
     all_messages = db.query(MessageModel).all()
     

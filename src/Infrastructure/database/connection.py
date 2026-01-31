@@ -9,7 +9,7 @@ from src.Infrastructure.database.models import Base
 #Crea el engine de la base de datos
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Necesario para SQLite ya que es single-threaded y SQLAlchemy usa múltiples hilos
+    connect_args={"check_same_thread": False}  # Necesario para SQLite ya que es single-threaded y Fastapi usa múltiples hilos. Se necesita este flag para que funcione correctamente.
 )
 
 # Crea la factory de sesiones

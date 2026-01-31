@@ -1,30 +1,13 @@
-"""
-Infrastructure Layer - Message Processor Implementation
+#Importante: Este archivo es parte de la capa de Infraestructura e implementa
+# las interfaces definidas en la capa de Aplicación. No debe contener lógica de negocio
 
-Esta es la implementación CONCRETA del procesador de mensajes.
-Implementa la interfaz IMessageProcessor definida en Application.
-
-IMPORTANTE:
-- Vive en Infrastructure porque es una implementación técnica
-- Implementa la interfaz de Application
-- Usa DTOs para comunicarse con otras capas
-- Puede usar servicios de Domain directamente
-"""
 from datetime import datetime
-from ...dtos.message_dto import MessageDTO, MessageMetadataDTO
-from ...Application.interfaces.message_processor_interface import IMessageProcessor
-from ...Domain.services.content_filter import ContentFilterService
+from src.Application.dtos.message_dto import MessageDTO, MessageMetadataDTO
+from src.Application.interfaces.message_processor_interface import IMessageProcessor
+from src.Domain.services.content_filter import ContentFilterService
 
-
+#Clase que implementa la interfaz IMessageProcessor. Agrega metadatos a los mensajes, valida contenido y marca timestamps.
 class MessageProcessorImpl(IMessageProcessor):
-    """
-    Implementación concreta del procesador de mensajes.
-    
-    Responsabilidades:
-    - Agregar metadatos a los mensajes (word_count, character_count)
-    - Validar y sanitizar contenido (usa ContentFilterService)
-    - Marcar timestamp de procesamiento
-    """
     
     def process(self, message: MessageDTO) -> MessageDTO:
         """

@@ -2,7 +2,8 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, List
 
-
+#En este schema, se agrega message_id y session_id como campos obligatorios para la creación de mensajes Definidos por el usuario.Solo para el ejemplo de carga del mensaje. Pero no debe ser así ya que estos campos se llenan de forma automática en el backend.
+#Para la respuesta del mensaje, se incluye un campo metadata opcional para información adicional. Además, se define un esquema para la paginación de mensajes.
 class MessageCreateSchema(BaseModel):
     message_id: str = Field(..., example="msg-123456")
     session_id: str = Field(..., example="session-abcdef")
