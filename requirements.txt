@@ -17,3 +17,6 @@ aiosqlite==0.18.0
 
 # Development
 python-dotenv==1.0.1
+
+#MAKO Templates
+Mako==1.3.10
