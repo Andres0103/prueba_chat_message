@@ -1,7 +1,7 @@
 #Test para la creación de mensajes en la aplicación
 import pytest
 from datetime import datetime
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, AsyncMock
 
 from src.Application.use_cases.create_message_use_case import CreateMessageUseCase
 from src.Application.dtos.message_dto import CreateMessageDTO, MessageResponseDTO
@@ -10,12 +10,13 @@ from src.Domain.value_objects.sender_type import SenderType
 from src.Domain.value_objects.message_metadata import MessageMetadata
 
 #Test para la creación de mensajes en la aplicación
+@pytest.mark.asyncio
 class TestCreateMessageUseCaseSuccess:
 
     #Debe crear un mensaje con datos válidos y devolver MessageResponseDTO
-    def test_create_message_with_valid_data_returns_response_dto(self):
-        # Arrange, prepare los mocks y datos de prueba
-        repository = Mock()
+    async def test_create_message_with_valid_data_returns_response_dto(self):
+        # Prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
@@ -28,7 +29,6 @@ class TestCreateMessageUseCaseSuccess:
             sender="user"
         )
 
-        # Act, configura los mocks para devolver valores esperados
         content_filter.filter.return_value = "Hello world"
 
         saved_entity = MessageEntity(
@@ -52,11 +52,10 @@ class TestCreateMessageUseCaseSuccess:
             content_filter=content_filter,
             message_processor=message_processor
         )
+        # Ejecuta el caso de uso
+        result = await use_case.execute(dto)
 
-        # Act, ejecuta el caso de uso
-        result = use_case.execute(dto)
-
-        # Assert, verifica que el resultado sea correcto
+        # Verifica que el resultado sea correcto
         assert result is not None
         assert isinstance(result, MessageResponseDTO)
         assert result.message_id == "msg-123"
@@ -68,13 +67,13 @@ class TestCreateMessageUseCaseSuccess:
         assert result.metadata["character_count"] == 11
 
     #Debe llamar al filtro de contenido para validar el contenido del mensaje
-    def test_create_message_calls_content_filter(self):
-        # Arrange, prepara los mocks y datos de prueba
-        repository = Mock()
+    async def test_create_message_calls_content_filter(self):
+        # Prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
-        content_filter.filter.return_value = "filtered content"
+        content_filter.filter.return_value = "contenido filtrado"
 
         dto = CreateMessageDTO(
             message_id="msg-123",
@@ -88,7 +87,7 @@ class TestCreateMessageUseCaseSuccess:
         entity = MessageEntity(
             message_id="msg-123",
             session_id="session-abc",
-            content="filtered content",
+            content="contenido filtrado",
             timestamp=datetime.now(),
             sender=SenderType.USER
         )
@@ -101,16 +100,16 @@ class TestCreateMessageUseCaseSuccess:
             message_processor=message_processor
         )
 
-        # Act, ejecuta el caso de uso
-        use_case.execute(dto)
+        # Ejecuta el caso de uso
+        await use_case.execute(dto)
 
-        # Assert, verifica que el filtro de contenido fue llamado
+        # Verifica que el filtro de contenido fue llamado
         content_filter.filter.assert_called_once_with("test content")
 
     #Debe llamar al procesador de mensajes para agregar metadatos
-    def test_create_message_calls_message_processor(self):
-        # Arrange, prepara los mocks y datos de prueba
-        repository = Mock()
+    async def test_create_message_calls_message_processor(self):
+        # Prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
@@ -140,16 +139,16 @@ class TestCreateMessageUseCaseSuccess:
             message_processor=message_processor
         )
 
-        # Act, ejecuta el caso de uso
-        use_case.execute(dto)
+        # Ejecuta el caso de uso
+        await use_case.execute(dto)
 
-        # Assert, verifica que el procesador de mensajes fue llamado
+        # Verifica que el procesador de mensajes fue llamado
         message_processor.process.assert_called_once()
 
     #Debe guardar el mensaje procesado en el repositorio
-    def test_create_message_persists_to_repository(self):
-        # Arrange, prepara los mocks y datos de prueba
-        repository = Mock()
+    async def test_create_message_persists_to_repository(self):
+        # Prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
@@ -178,24 +177,24 @@ class TestCreateMessageUseCaseSuccess:
             content_filter=content_filter,
             message_processor=message_processor
         )
+        # ejecuta el caso de uso
+        await use_case.execute(dto)
 
-        # Act, ejecuta el caso de uso
-        use_case.execute(dto)
-
-        # Assert, verifica que el repositorio guardó el mensaje
-        repository.save.assert_called_once()
+        # Verifica que el repositorio guardó el mensaje
+        repository.save.assert_awaited_once()
 
 #Tests para la validación del contenido durante la creación de mensajes
+@pytest.mark.asyncio
 class TestCreateMessageUseCaseContentFiltering:
 
-    def test_create_message_with_inappropriate_content_raises_error(self):
-        """Should raise ValueError when content contains inappropriate words."""
-        # Arrange
+    #Debe lanzar ValueError si el contenido tiene palabras inapropiadas
+    async def test_create_message_with_inappropriate_content_raises_error(self):
+        # Prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
 
-        content_filter.filter.side_effect = ValueError("Content contains inappropriate words")
+        content_filter.filter.side_effect = ValueError("El mensaje contiene palabras inapropiadas")
 
         dto = CreateMessageDTO(
             message_id="msg-123",
@@ -211,14 +210,13 @@ class TestCreateMessageUseCaseContentFiltering:
             message_processor=message_processor
         )
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="Content contains inappropriate words"):
-            use_case.execute(dto)
+        with pytest.raises(ValueError, match="El mensaje contiene palabras inapropiadas"):
+            await use_case.execute(dto)
 
-    def test_create_message_filters_content_before_saving(self):
-        """Should use filtered content when saving, not original content."""
-        # Arrange
-        repository = Mock()
+    #Debe usar el contenido filtrado al guardar, no el original
+    async def test_create_message_filters_content_before_saving(self):
+        # Prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
@@ -250,22 +248,20 @@ class TestCreateMessageUseCaseContentFiltering:
             content_filter=content_filter,
             message_processor=message_processor
         )
+        await use_case.execute(dto)
 
-        # Act
-        use_case.execute(dto)
-
-        # Assert - verify filtered content was used
+        # Verifica que el contenido guardado es el filtrado
         saved_entity = message_processor.process.call_args[0][0]
         assert saved_entity.content == filtered_content
 
 
+@pytest.mark.asyncio
 class TestCreateMessageUseCaseSenderValidation:
-    """Tests for sender validation."""
 
-    def test_create_message_with_valid_user_sender(self):
-        """Should accept 'user' as valid sender."""
-        # Arrange
-        repository = Mock()
+    #Debe aceptar 'user' como remitente válido
+    async def test_create_message_with_valid_user_sender(self):
+        # prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
@@ -294,15 +290,13 @@ class TestCreateMessageUseCaseSenderValidation:
             content_filter=content_filter,
             message_processor=message_processor
         )
-
-        # Act & Assert - should not raise
-        result = use_case.execute(dto)
+        result = await use_case.execute(dto)
         assert result is not None
 
-    def test_create_message_with_valid_system_sender(self):
-        """Should accept 'system' as valid sender."""
-        # Arrange
-        repository = Mock()
+    #Debe aceptar 'system' como remitente válido
+    async def test_create_message_with_valid_system_sender(self):
+        # Prepara los mocks y datos de prueba
+        repository = AsyncMock()
         content_filter = Mock()
         message_processor = Mock()
 
@@ -331,14 +325,12 @@ class TestCreateMessageUseCaseSenderValidation:
             content_filter=content_filter,
             message_processor=message_processor
         )
-
-        # Act & Assert
-        result = use_case.execute(dto)
+        result = await use_case.execute(dto)
         assert result.sender == "system"
 
-    def test_create_message_with_invalid_sender_raises_error(self):
-        """Should raise ValueError for invalid sender type."""
-        # Arrange
+    #Debe lanzar ValueError para tipos de remitente no válidos
+    async def test_create_message_with_invalid_sender_raises_error(self):
+        # Prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -358,18 +350,16 @@ class TestCreateMessageUseCaseSenderValidation:
             content_filter=content_filter,
             message_processor=message_processor
         )
-
-        # Act & Assert
         with pytest.raises(ValueError):
-            use_case.execute(dto)
+            await use_case.execute(dto)
 
-
+#Tests para casos límite y condiciones de borde
+@pytest.mark.asyncio
 class TestCreateMessageUseCaseEdgeCases:
-    """Tests for edge cases and boundary conditions."""
 
-    def test_create_message_with_empty_message_id_raises_error(self):
-        """Should raise ValueError when message_id is empty."""
-        # Arrange
+    #Debe lanzar ValueError si message_id está vacío
+    async def test_create_message_with_empty_message_id_raises_error(self):
+        # Prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -387,14 +377,12 @@ class TestCreateMessageUseCaseEdgeCases:
             content_filter=content_filter,
             message_processor=message_processor
         )
+        with pytest.raises(ValueError, match="message_id no puede estar vacío"):
+            await use_case.execute(dto)
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="message_id cannot be empty"):
-            use_case.execute(dto)
-
-    def test_create_message_with_empty_session_id_raises_error(self):
-        """Should raise ValueError when session_id is empty."""
-        # Arrange
+    #Debe lanzar ValueError si session_id está vacío
+    async def test_create_message_with_empty_session_id_raises_error(self):
+        # Prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -412,14 +400,12 @@ class TestCreateMessageUseCaseEdgeCases:
             content_filter=content_filter,
             message_processor=message_processor
         )
+        with pytest.raises(ValueError, match="session_id no puede estar vacío"):
+            await use_case.execute(dto)
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="session_id cannot be empty"):
-            use_case.execute(dto)
-
-    def test_create_message_with_empty_content_raises_error(self):
-        """Should raise ValueError when content is empty."""
-        # Arrange
+    #Debe lanzar ValueError si el contenido está vacío después del filtrado
+    async def test_create_message_with_empty_content_raises_error(self):
+        # Prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -439,14 +425,12 @@ class TestCreateMessageUseCaseEdgeCases:
             content_filter=content_filter,
             message_processor=message_processor
         )
+        with pytest.raises(ValueError, match="content no puede estar vacío"):
+            await use_case.execute(dto)
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="content cannot be empty"):
-            use_case.execute(dto)
-
-    def test_create_message_with_whitespace_only_content_raises_error(self):
-        """Should raise ValueError when content is only whitespace."""
-        # Arrange
+    #Debe lanzar ValueError si el contenido es solo espacios en blanco después del filtrado
+    async def test_create_message_with_whitespace_only_content_raises_error(self):
+        # Prepara los mocks y datos de prueba
         repository = Mock()
         content_filter = Mock()
         message_processor = Mock()
@@ -459,14 +443,13 @@ class TestCreateMessageUseCaseEdgeCases:
             sender="user"
         )
 
-        content_filter.filter.return_value = ""  # After sanitization
+        content_filter.filter.return_value = ""  # después del filtrado queda vacío
 
         use_case = CreateMessageUseCase(
             repository=repository,
             content_filter=content_filter,
             message_processor=message_processor
         )
-
         # Act & Assert
-        with pytest.raises(ValueError, match="content cannot be empty"):
-            use_case.execute(dto)
+        with pytest.raises(ValueError, match="content no puede estar vacío"):
+            await use_case.execute(dto)

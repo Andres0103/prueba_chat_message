@@ -7,15 +7,17 @@ from src.API.v1.schemas.message_schema import (
     PaginatedMessagesSchema,
 )
 
-from src.API.v1.schemas.response_schema import SuccessResponse, ErrorResponse
+from src.API.v1.schemas.response_schema import SuccessResponse
 
 from src.Application.dtos.message_dto import CreateMessageDTO
 from src.Application.dtos.pagination_dto import GetMessagesFilterDTO
 from src.Application.use_cases.create_message_use_case import CreateMessageUseCase
 from src.Application.use_cases.get_messages_use_case import GetMessagesUseCase
 
-from src.Infrastructure.database.connection import get_db
+from src.Infrastructure.database.dependencies import get_db
 from src.Infrastructure.repositories.message_repository_impl import MessageRepositoryImpl
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.Domain.services.content_filter import ContentFilterService
 from src.Domain.services.message_processor import MessageProcessor
 from src.Infrastructure.database.models import MessageModel
@@ -23,8 +25,8 @@ from src.Infrastructure.database.models import MessageModel
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
 # Dependencias de casos de uso. Inyección de dependencias manual.
-def get_create_message_use_case(
-    db=Depends(get_db),
+async def get_create_message_use_case(
+    db: AsyncSession = Depends(get_db),
 ) -> CreateMessageUseCase:
     repository = MessageRepositoryImpl(db)
     processor = MessageProcessor()
@@ -36,8 +38,8 @@ def get_create_message_use_case(
     )
 
 
-def get_get_messages_use_case(
-    db=Depends(get_db),
+async def get_get_messages_use_case(
+    db: AsyncSession = Depends(get_db),
 ) -> GetMessagesUseCase:
     repository = MessageRepositoryImpl(db)
     return GetMessagesUseCase(repository=repository)
@@ -50,7 +52,7 @@ def get_get_messages_use_case(
 )
 
 #función para crear un mensaje con payload y caso de uso
-def create_message(
+async def create_message(
     payload: MessageCreateSchema,
     use_case: CreateMessageUseCase = Depends(get_create_message_use_case),
 ):
@@ -63,19 +65,19 @@ def create_message(
             sender=payload.sender,
         )
 
-        result = use_case.execute(dto)
+        result = await use_case.execute(dto)
 
         return SuccessResponse(
             data=MessageResponseSchema(**result.__dict__)
         )
     except ValueError as e:
-        # Content filtering or validation errors
+        # Validación de errores
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
-        # Unexpected errors
+        # Errores inesperados
         import traceback
         traceback.print_exc()
         raise HTTPException(
@@ -91,7 +93,7 @@ def create_message(
 )
 
 #Funcion para obtener mensajes con paginación y filtrado
-def get_messages(
+async def get_messages(
     session_id: str,
     limit: int = Query(default=20, ge=1, le=100, description="Límite de mensajes por página"),
     offset: int = Query(default=0, ge=0, description="Desplazamiento para paginación"),
@@ -107,7 +109,7 @@ def get_messages(
             sender=sender,
         )
 
-        result = use_case.execute(filters)
+        result = await use_case.execute(filters)
         
         # Convertir DTOs a schemas
         paginated_response = PaginatedMessagesSchema(
@@ -140,20 +142,18 @@ def get_messages(
         )
 
 # Endpoint de debug para ver todos los mensajes en la BD.
-#Se agregói con propósito de desarrollo y pruebas.
 @router.get(
     "/debug/all",
     response_model=SuccessResponse,
     status_code=status.HTTP_200_OK,
 )
-def debug_all_messages(
-    db = Depends(get_db),
+async def debug_all_messages(
+    db: AsyncSession = Depends(get_db),
 ):
-    
-    #Obtenemos todos los mensajes de la base de datos y los retornamos
-    
-    all_messages = db.query(MessageModel).all()
-    
+    stmt = select(MessageModel)
+    result = await db.execute(stmt)
+    all_messages = result.scalars().all()
+
     return SuccessResponse(
         data={
             "total_count": len(all_messages),

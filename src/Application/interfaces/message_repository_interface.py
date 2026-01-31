@@ -6,16 +6,15 @@ from src.Domain.entities.message_entity import MessageEntity
 
 #Clase que define la interfaz del repositorio de mensajes - Define el contrato para la persistencia de mensajes
 class MessageRepositoryInterface(ABC):
-
     @abstractmethod
-    def save(self, message: MessageEntity) -> MessageEntity:
+    async def save(self, message: MessageEntity) -> MessageEntity:
         """
         Guarda un mensaje y retorna el mensaje persistido.
         """
         pass
 
     @abstractmethod
-    def get_by_session(
+    async def get_by_session(
         self,
         session_id: str,
         limit: int,
@@ -28,7 +27,7 @@ class MessageRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def count_by_session(
+    async def count_by_session(
         self,
         session_id: str,
         sender: Optional[str] = None

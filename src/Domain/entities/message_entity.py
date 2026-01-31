@@ -18,16 +18,16 @@ class MessageEntity:
     def __post_init__(self):
         #validaciones básicas del mensaje
         if not self.message_id:
-            raise ValueError("message_id cannot be empty")
+            raise ValueError("message_id no puede estar vacío")
         
         if not self.session_id:
-            raise ValueError("session_id cannot be empty")
+            raise ValueError("session_id no puede estar vacío")
         
         if not self.content or not self.content.strip():
-            raise ValueError("content cannot be empty")
+            raise ValueError("content no puede estar vacío")
         
         if not isinstance(self.sender, SenderType):
-            raise ValueError(f"sender must be of type SenderType, got {type(self.sender)}")
+            raise ValueError(f"sender debe ser de tipo 'system' o 'user', se recibió {type(self.sender)}")
     
     def with_metadata(self, metadata: MessageMetadata) -> 'MessageEntity':
         #Retorna una nueva instancia de MessageEntity con metadata actualizada

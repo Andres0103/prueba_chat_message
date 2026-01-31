@@ -1,62 +1,105 @@
 # Chat Message API
 
-API RESTful para procesamiento de mensajes de chat construida con **FastAPI**, **SQLAlchemy** y siguiendo los principios de **Clean Architecture**.
+API RESTful para procesamiento de mensajes de chat construida con **FastAPI**, **SQLAlchemy (asyncio)** y siguiendo los principios de **Clean Architecture**.
 
-## Descripción General
 
-Chat Message API es una aplicación backend que permite:
+## Instalación y configuración (local)
 
-- **Crear mensajes** con validación de contenido
-- **Filtrar contenido inapropiado** (spam, malware, intentos de hack)
-- **Recuperar mensajes** con paginación y filtrado por remitente
-- **Gestionar sesiones** de chat aisladas
-- **Extraer metadatos** automáticamente (contador de palabras, caracteres, etc.)
+Requisitos mínimos:
 
-### Características Principales
+- Python 3.11+
+- pip
+- Git
 
-**Validación robusta** de datos de entrada  
-**Filtrado de contenido** intelligent (spam, malware, hack)  
-**Paginación** flexible de mensajes  
-**Filtrado por remitente** (usuario/sistema)  
-**Metadatos automáticos** (fecha/hora, conteos)  
-**Manejo de errores** completo con códigos HTTP apropiados  
-**78 tests** con 89% de cobertura de código  
-**Documentación interactiva** (Swagger UI y ReDoc)  
+Pasos resumidos (Windows PowerShell):
+
+```powershell
+git clone <repo-url>
+cd chat-message-api
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Notas:
+- Si usas Docker, la orquestación con `docker-compose` sigue estando disponible.
+- El código ahora espera una sesión BD asíncrona; no mezcles llamadas síncronas a la sesión.
 
 ---
 
-## Arquitectura
+## Ejecutar la aplicación
 
-El proyecto sigue **Clean Architecture** con 4 capas independientes:
+En desarrollo:
 
-```
-src/
-├── API/                          # Capa de Presentación
-│   └── v1/controllers/          # Endpoints HTTP
-│   └── v1/schemas/              # Schemas Pydantic
-│
-├── Application/                  # Capa de Aplicación
-│   ├── use_cases/               # Lógica de negocio (CreateMessage, GetMessages)
-│   ├── dtos/                    # Data Transfer Objects
-│   └── interfaces/              # Contratos/Interfaces
-│
-├── Domain/                       # Capa de Dominio (sin dependencias)
-│   ├── entities/                # MessageEntity
-│   ├── services/                # ContentFilterService, MessageProcessor
-│   └── value_objects/           # SenderType, MessageMetadata
-│
-└── Infrastructure/              # Capa de Infraestructura
-    ├── database/                # Conexión, modelos SQLAlchemy
-    ├── repositories/            # MessageRepositoryImpl
-    └── config/                  # Configuración
+```bash
+uvicorn src.main:app --reload
 ```
 
-### Ventajas de la Arquitectura
+La API queda en `http://localhost:8000`.
 
-- **Independencia de frameworks**: La lógica de negocio no depende de FastAPI ni SQLAlchemy
-- **Testabilidad**: Cada capa puede ser testeada en aislamiento
-- **Mantenibilidad**: Cambios en una capa no afectan las otras
-- **Escalabilidad**: Fácil agregar nuevos features sin modificar código existente
+---
+
+## Ejecutar tests
+
+Asegúrate de activar el virtualenv antes de ejecutar pytest.
+
+Comandos recomendados:
+
+- Ejecutar toda la suite (rápido y fiable en este repo):
+
+```powershell
+# desde PowerShell en Windows
+.\venv\Scripts\Activate.ps1
+venv\Scripts\python -m pytest -q
+```
+
+- Ejecutar con cobertura y reporte HTML:
+
+```bash
+pytest --cov=src --cov-report=html
+# Resultado en htmlcov/index.html
+```
+
+- Ejecutar solo integración o solo unitarios:
+
+```bash
+pytest tests/integration/ -q
+pytest tests/unit/ -q
+```
+
+Notas sobre pytest/asyncio:
+- `pytest.ini` incluye `asyncio_mode = auto` para que `pytest-asyncio` habilite fixtures asíncronas.
+- Las fixtures asíncronas (p. ej. `client_with_db`) están definidas en `tests/conftest.py`.
+
+---
+
+## Archivos relevantes modificados durante la migración
+
+- `src/Infrastructure/database/connection.py`
+- `src/Infrastructure/database/session.py`
+- `src/Infrastructure/database/dependencies.py`
+- `src/Infrastructure/repositories/message_repository_impl.py`
+- `src/Application/use_cases/create_message_use_case.py`
+- `src/Application/use_cases/get_messages_use_case.py`
+- `src/API/v1/controllers/message_controller.py`
+- `src/Application/interfaces/message_repository_interface.py`
+- `tests/conftest.py`
+- `tests/integration/test_message_controller_api.py` (ajustes de AsyncClient / response.json)
+- `pytest.ini` (agregado `asyncio_mode = auto`)
+
+---
+
+## Consejos para desarrolladores
+
+- Al añadir código que accede a la BD, use `async with SessionLocal() as session:` o recibir `session: AsyncSession` como dependencia.
+- Para mocks en tests unitarios, use `unittest.mock.AsyncMock` para funciones/métodos `async`.
+- Evite mezclar sesiones síncronas y asíncronas en el mismo flujo de ejecución.
+
+---
+
+
+Fecha de la migración: 2026-01-31
+
 
 ---
 
@@ -847,7 +890,7 @@ class Message(Base):
 
 ---
 
-## 🎓 Recursos Adicionales
+##  Recursos Adicionales
 
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)

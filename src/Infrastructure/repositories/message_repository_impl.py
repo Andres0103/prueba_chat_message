@@ -1,7 +1,9 @@
 #Importante: Este archivo contiene la implementación concreta del repositorio de mensajes usando SQLAlchemy.
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 
 from src.Application.interfaces.message_repository_interface import MessageRepositoryInterface
 from src.Domain.entities.message_entity import MessageEntity
@@ -10,15 +12,13 @@ from src.Domain.value_objects.message_metadata import MessageMetadata
 
 from src.Infrastructure.database.models import MessageModel
 
-#Clase que implementa el repositorio de mensajes usando SQLAlchemy
+
 class MessageRepositoryImpl(MessageRepositoryInterface):
 
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
 
-    #Guarda un mensaje en la base de datos y retorna la entidad persistida
-    def save(self, message: MessageEntity) -> MessageEntity:
-
+    async def save(self, message: MessageEntity) -> MessageEntity:
         model = MessageModel(
             message_id=message.message_id,
             session_id=message.session_id,
@@ -31,56 +31,46 @@ class MessageRepositoryImpl(MessageRepositoryInterface):
         )
 
         self.db_session.add(model)
-        self.db_session.commit()
-        self.db_session.refresh(model)
+        try:
+            await self.db_session.commit()
+            await self.db_session.refresh(model)
+        except IntegrityError as e:
+            # Map DB integrity issues (e.g. unique constraint on message_id)
+            await self.db_session.rollback()
+            # Raise a ValueError so upper layers (use-case/controller) can return 400
+            raise ValueError(f"El mensaje con id {message.message_id} ya existe o hay un error de integridad en la base de datos") from e
 
         return self._to_entity(model)
 
-    #Obtiene mensajes por sesión con paginación y filtro opcional por sender
-    def get_by_session(
+    async def get_by_session(
         self,
         session_id: str,
         limit: int,
         offset: int,
-        sender: Optional[str] = None
+        sender: Optional[str] = None,
     ) -> List[MessageEntity]:
-        
-        query = self.db_session.query(MessageModel).filter(
-            MessageModel.session_id == session_id
-        )
+        stmt = select(MessageModel).where(MessageModel.session_id == session_id)
 
         if sender:
-            query = query.filter(MessageModel.sender == sender)
+            stmt = stmt.where(MessageModel.sender == sender)
 
-        results = (
-            query
-            .order_by(MessageModel.timestamp.asc())
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
+        stmt = stmt.order_by(MessageModel.timestamp.asc()).offset(offset).limit(limit)
 
-        return [self._to_entity(model) for model in results]
+        result = await self.db_session.execute(stmt)
+        rows = result.scalars().all()
 
-    #Cuenta el total de mensajes en una sesión, opcionalmente filtrados por sender
-    def count_by_session(
-        self,
-        session_id: str,
-        sender: Optional[str] = None
-    ) -> int:
+        return [self._to_entity(m) for m in rows]
 
-        query = self.db_session.query(MessageModel).filter(
-            MessageModel.session_id == session_id
-        )
-
+    async def count_by_session(self, session_id: str, sender: Optional[str] = None) -> int:
+        stmt = select(func.count()).select_from(MessageModel).where(MessageModel.session_id == session_id)
         if sender:
-            query = query.filter(MessageModel.sender == sender)
+            stmt = stmt.where(MessageModel.sender == sender)
 
-        return query.count()
+        result = await self.db_session.execute(stmt)
+        count = result.scalar_one()
+        return int(count)
 
-    #Convierte un modelo ORM en una entidad de dominio
     def _to_entity(self, model: MessageModel) -> MessageEntity:
-
         metadata = None
         if model.word_count is not None:
             metadata = MessageMetadata(

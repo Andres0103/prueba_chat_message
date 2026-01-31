@@ -3,7 +3,7 @@ from src.Application.interfaces.content_filter_interface import ContentFilterInt
 
 #Servicio de dominio para filtrar contenido inapropiado, heredando de la interfaz definida para el filtro de contenido
 class ContentFilterService(ContentFilterInterface):
-    INAPPROPRIATE_WORDS = {"spam", "malware", "hack"}
+    INAPPROPRIATE_WORDS = {"spam", "malware", "hack", "scam"} 
 
     def filter(self, content: str) -> str:
         """
@@ -13,7 +13,7 @@ class ContentFilterService(ContentFilterInterface):
         sanitized = self.sanitize_content(content)
         
         if self.contains_inappropriate_content(sanitized):
-            raise ValueError("Content contains inappropriate words")
+            raise ValueError("El mensaje contiene palabras inapropiadas.")
         
         return sanitized
 
@@ -34,6 +34,6 @@ class ContentFilterService(ContentFilterInterface):
         sanitized = cls.sanitize_content(content)
 
         if cls.contains_inappropriate_content(sanitized):
-            return False, "Content contains inappropriate words"
+            return False, "El mensaje contiene palabras inapropiadas"
 
         return True, ""

@@ -1,33 +1,33 @@
 #Importante: Este archivo gestiona la conexión a la base de datos utilizando SQLAlchemy.
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 from src.Infrastructure.config.settings import settings
 from src.Infrastructure.database.models import Base
 
 
-#Crea el engine de la base de datos
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False}  # Necesario para SQLite ya que es single-threaded y Fastapi usa múltiples hilos. Se necesita este flag para que funcione correctamente.
-)
-
-# Crea la factory de sesiones
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Convertir DATABASE_URL a formato async si es sqlite
+database_url = settings.DATABASE_URL
+if database_url.startswith("sqlite:") and not database_url.startswith("sqlite+"):
+    async_database_url = database_url.replace("sqlite:", "sqlite+aiosqlite:", 1)
+else:
+    async_database_url = database_url
 
 
-#Crea las tablas en la base de datos
-def create_tables():
-    Base.metadata.create_all(bind=engine)
+# Crea el engine asíncrono de la base de datos
+engine: AsyncEngine = create_async_engine(async_database_url, echo=False, future=True)
 
 
-def get_db() -> Session:
-    """
-    Dependency para obtener una sesión de base de datos.
-    Se usa en los endpoints de FastAPI.
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Factory de sesiones asíncronas
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def create_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def drop_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+

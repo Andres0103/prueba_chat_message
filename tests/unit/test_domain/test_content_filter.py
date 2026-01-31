@@ -1,192 +1,184 @@
-"""
-Unit tests for ContentFilterService domain service.
-Tests cover: filtering, sanitization, inappropriate content detection.
-"""
+#Test para content_filter.py en domain services
 import pytest
 from src.Domain.services.content_filter import ContentFilterService
 
-
+#test cases para ContentFilterService para contenido inapropiado y sanitización
 class TestContentFilterServiceDetection:
-    """Tests for inappropriate content detection."""
 
+    #Debe detectar palabras inapropiadas en el contenido
     def test_contains_inappropriate_content_with_spam(self):
-        """Should detect 'spam' in content."""
-        content = "This is spam content"
+        content = "Esto es contenido spam"
         assert ContentFilterService.contains_inappropriate_content(content) is True
 
+    #Debe detectar 'malware' en el contenido
     def test_contains_inappropriate_content_with_malware(self):
-        """Should detect 'malware' in content."""
-        content = "Warning: malware detected"
+        content = "Peligro: malware detectado"
         assert ContentFilterService.contains_inappropriate_content(content) is True
 
+    #Debe detectar 'hack' en el contenido
     def test_contains_inappropriate_content_with_hack(self):
-        """Should detect 'hack' in content."""
-        content = "Don't hack my system"
+        content = "No haga un hack al sistema"
         assert ContentFilterService.contains_inappropriate_content(content) is True
 
+    #Debe detectar 'scam' en el contenido
+    def test_contains_inappropriate_content_with_scam(self):
+        content = "Esto es un scam"
+        assert ContentFilterService.contains_inappropriate_content(content) is True
+
+    #Debe detectar palabras inapropiadas sin importar mayúsculas/minúsculas
     def test_contains_inappropriate_content_case_insensitive(self):
-        """Should detect inappropriate words case-insensitively."""
         contents = [
-            "This is SPAM content",
-            "This is Spam content",
-            "This is spaM content",
-            "This is MALWARE",
-            "This is HACK"
+            "Esto es Contenido SPAM",
+            "Esto es Spam",
+            "Esto es spaM",
+            "Esto es MALWARE",
+            "Esto es HACK",
+            "Esto es SCAM",
         ]
         for content in contents:
             assert ContentFilterService.contains_inappropriate_content(content) is True
 
+    #No debe detectar contenido limpio como inapropiado
     def test_contains_inappropriate_content_with_clean_content(self):
-        """Should not detect inappropriate content in clean text."""
-        content = "This is a clean message"
+        content = "Esto es un mensaje limpio"
         assert ContentFilterService.contains_inappropriate_content(content) is False
 
+    #Debe manejar cadena vacía correctamente
     def test_contains_inappropriate_content_with_empty_string(self):
-        """Should handle empty string gracefully."""
         content = ""
         assert ContentFilterService.contains_inappropriate_content(content) is False
 
-
+#Tests para la sanitización de contenido
 class TestContentFilterServiceSanitization:
-    """Tests for content sanitization."""
 
+    #Debe eliminar espacios en blanco al inicio
     def test_sanitize_content_removes_leading_whitespace(self):
-        """Should remove leading whitespace."""
         content = "   hello world"
         sanitized = ContentFilterService.sanitize_content(content)
         assert sanitized == "hello world"
 
+    #Debe eliminar espacios en blanco al final
     def test_sanitize_content_removes_trailing_whitespace(self):
-        """Should remove trailing whitespace."""
         content = "hello world   "
         sanitized = ContentFilterService.sanitize_content(content)
         assert sanitized == "hello world"
 
+    #Debe eliminar espacios en blanco en ambos extremos
     def test_sanitize_content_removes_both_ends_whitespace(self):
-        """Should remove whitespace from both ends."""
         content = "   hello world   "
         sanitized = ContentFilterService.sanitize_content(content)
         assert sanitized == "hello world"
 
-
+#Tests para el método principal filter()
 class TestContentFilterServiceFilter:
-    """Tests for the main filter() method."""
 
+    #Debe retornar contenido limpio sin cambios
     def test_filter_clean_content_returns_content(self):
-        """Should return content when it's clean."""
         content = "Hello world"
         result = ContentFilterService().filter(content)
         assert result == "Hello world"
 
+    #Debe sanitizar el contenido antes de verificar palabras inapropiadas
     def test_filter_sanitizes_content_before_checking(self):
-        """Should sanitize content before checking for inappropriate words."""
         content = "   Hello world   "
         result = ContentFilterService().filter(content)
         assert result == "Hello world"
 
+    #Debe lanzar ValueError si se detecta 'spam'
     def test_filter_raises_error_for_spam(self):
-        """Should raise ValueError when 'spam' is detected."""
-        content = "Buy cheap spam now"
-        with pytest.raises(ValueError, match="Content contains inappropriate words"):
+        content = "Compra este spam ahora"
+        with pytest.raises(ValueError, match="El mensaje contiene palabras inapropiadas"):
             ContentFilterService().filter(content)
 
+    #Debe lanzar ValueError si se detecta 'malware'
     def test_filter_raises_error_for_malware(self):
-        """Should raise ValueError when 'malware' is detected."""
-        content = "This is malware"
-        with pytest.raises(ValueError, match="Content contains inappropriate words"):
+        content = "Este es malware"
+        with pytest.raises(ValueError, match="El mensaje contiene palabras inapropiadas"):
             ContentFilterService().filter(content)
-
+    
+    #Debe lanzar ValueError si se detecta 'hack'
     def test_filter_raises_error_for_hack(self):
-        """Should raise ValueError when 'hack' is detected."""
-        content = "Don't hack into the system"
-        with pytest.raises(ValueError, match="Content contains inappropriate words"):
+        content = "No hagas un hack al sistema"
+        with pytest.raises(ValueError, match="El mensaje contiene palabras inapropiadas"):
             ContentFilterService().filter(content)
+    
+    #Debe lanzar ValueError si se detecta 'scam'
+    def test_filter_raises_error_for_scam(self):
+        with pytest.raises(ValueError, match="El mensaje contiene palabras inapropiadas"):
+            ContentFilterService().filter("SCAM detectado")
 
-    def test_filter_case_insensitive_spam_detection(self):
-        """Should detect spam case-insensitively."""
-        with pytest.raises(ValueError, match="Content contains inappropriate words"):
-            ContentFilterService().filter("SPAM is bad")
-
+    #Debe detectar múltiples palabras inapropiadas
     def test_filter_with_multiple_inappropriate_words(self):
-        """Should detect any inappropriate word in content."""
         with pytest.raises(ValueError):
-            ContentFilterService().filter("spam and malware and hack")
+            ContentFilterService().filter("spam y malware y hack y scam")
 
-    def test_filter_ignores_word_boundaries(self):
-        """Should detect words within other words (if they exist as substrings)."""
-        # Note: This behavior depends on implementation - currently checks substring
-        content = "aspiring hacker"  # Contains "hack" as substring in "hacker"
-        # This should raise if substring matching is used
-        try:
-            result = ContentFilterService().filter(content)
-            # If it doesn't raise, that's ok - depends on implementation
-        except ValueError:
-            pass
-
-
+#Tests para el método estático legacy filter_content()
 class TestContentFilterServiceFilterContent:
-    """Tests for the legacy filter_content() static method."""
 
+    #Debe retornar (True, '') para contenido limpio
     def test_filter_content_returns_true_for_clean_content(self):
-        """Should return (True, '') for clean content."""
-        content = "Hello, how can I help you?"
+        content = "Hola, cómo puedo ayudarte?"
         is_valid, error = ContentFilterService.filter_content(content)
 
         assert is_valid is True
         assert error == ""
 
+    #Debe retornar (False, error_msg) para contenido inapropiado
     def test_filter_content_returns_false_for_inappropriate(self):
-        """Should return (False, error_msg) for inappropriate content."""
-        content = "Buy this malware now!"
+        content = "Compra este malware ahora!"
         is_valid, error = ContentFilterService.filter_content(content)
 
         assert is_valid is False
-        assert error == "Content contains inappropriate words"
+        assert error == "El mensaje contiene palabras inapropiadas"
 
+    #Debe detectar spam en el contenido
     def test_filter_content_with_spam(self):
-        """Should detect spam."""
-        content = "Check out this spam offer"
+        content = "Este es un mensaje spam"
         is_valid, error = ContentFilterService.filter_content(content)
 
         assert is_valid is False
 
+    #Debe detectar hack en el contenido
     def test_filter_content_with_hack(self):
-        """Should detect hack."""
-        content = "Learn to hack ethically"
+        content = "Aprende a hacer un hack al sistema"
         is_valid, error = ContentFilterService.filter_content(content)
 
         assert is_valid is False
 
+    #Debe sanitizar antes de verificar contenido inapropiado
     def test_filter_content_sanitizes_before_checking(self):
-        """Should sanitize before checking inappropriate content."""
-        content = "   clean message   "
+        content = "   mensaje limpio   "
         is_valid, error = ContentFilterService.filter_content(content)
 
         assert is_valid is True
         assert error == ""
 
-
+    #Debe eliminar espacios extra en la sanitización
     def test_sanitize_content_removes_extra_spaces(self):
         content = "  Hello world  "
         sanitized = ContentFilterService.sanitize_content(content)
 
         assert sanitized == "Hello world"
 
+    #Debe detectar contenido inapropiado sin importar mayúsculas/minúsculas
     def test_case_insensitive_filtering(self):
-        content = "This is SPAM content"
+        content = "Esto es SPAM"
         assert ContentFilterService.contains_inappropriate_content(content) is True
 
+    #Debe manejar cadena vacía correctamente
     def test_empty_content_is_valid(self):
         is_valid, error = ContentFilterService.filter_content("")
         assert is_valid is True
         assert error == ""
 
+    #Debe detectar contenido inapropiado después de la sanitización
     def test_filtering_after_sanitization(self):
         content = "   spam   "
         is_valid, error = ContentFilterService.filter_content(content)
 
         assert is_valid is False
 
+    #Debe detectar palabra inapropiada dentro de una oración
     def test_inappropriate_word_inside_sentence(self):
-        content = "Hello, this message contains malware hidden"
+        content = "Hola, este mensaje contiene spam dentro."
         assert ContentFilterService.contains_inappropriate_content(content) is True

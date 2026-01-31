@@ -21,19 +21,18 @@ class CreateMessageUseCase:
         self.content_filter = content_filter
         self.message_processor = message_processor
 
-    def execute(self, dto: CreateMessageDTO) -> MessageResponseDTO:
+    async def execute(self, dto: CreateMessageDTO) -> MessageResponseDTO:
         """
         Ejecuta el flujo de creación del mensaje.
         """
-        # Validación de campos requeridos
         if not dto.message_id or not dto.message_id.strip():
-            raise ValueError("message_id cannot be empty")
+            raise ValueError("message_id no puede estar vacío")
         
         if not dto.session_id or not dto.session_id.strip():
-            raise ValueError("session_id cannot be empty")
+            raise ValueError("session_id no puede estar vacío")
         
         if not dto.content or not dto.content.strip():
-            raise ValueError("content cannot be empty")
+            raise ValueError("content no puede estar vacío")
         
         # Convertir DTO a entidad
         sender = SenderType(dto.sender)
@@ -43,7 +42,7 @@ class CreateMessageUseCase:
         
         # Validar que contenido no esté vacío después del filtrado
         if not filtered_content or not filtered_content.strip():
-            raise ValueError("content cannot be empty")
+            raise ValueError("content no puede estar vacío después del filtrado")
         
         # Crear entidad de mensaje
         message = MessageEntity(
@@ -56,7 +55,7 @@ class CreateMessageUseCase:
         # Procesar el mensaje (lógica de negocio adicional)
         processed_message = self.message_processor.process(message)
 
-        saved_message = self.repository.save(processed_message)
+        saved_message = await self.repository.save(processed_message)
         # Convertir entidad guardada a DTO de respuesta
         return MessageResponseDTO(
             message_id=saved_message.message_id,

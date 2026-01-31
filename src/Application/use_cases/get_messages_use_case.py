@@ -9,7 +9,7 @@ class GetMessagesUseCase:
     def __init__(self, repository: MessageRepositoryInterface):
         self.repository = repository
 
-    def execute(self, filters: GetMessagesFilterDTO) -> PaginationDTO[MessageDTO]:
+    async def execute(self, filters: GetMessagesFilterDTO) -> PaginationDTO[MessageDTO]:
         """
         Ejecuta el caso de uso de obtención de mensajes.
 
@@ -19,17 +19,14 @@ class GetMessagesUseCase:
         Returns:
             DTO de paginación con los mensajes encontrados
         """
-        # Validación de campos requeridos
         if not filters.session_id or not filters.session_id.strip():
-            raise ValueError("session_id cannot be empty")
+            raise ValueError("session_id no puede estar vacío")
         
-        # Validación de límite
         if filters.limit and filters.limit < 0:
-            raise ValueError("limit must be positive")
+            raise ValueError("limit debe ser positivo")
         
-        # Validación de offset
         if filters.offset is not None and filters.offset < 0:
-            raise ValueError("offset must be non-negative")
+            raise ValueError("offset debe ser no negativo")
         
         # Aplicar valor por defecto de límite si es 0
         limit = filters.limit if filters.limit and filters.limit > 0 else 10
@@ -37,7 +34,21 @@ class GetMessagesUseCase:
         # Asegurar que el límite no exceda 100
         limit = min(limit, 100)
 
-        messages = self.repository.get_by_session(
+        # Si se pide filtrar por `sender` y la sesión ya existe pero el sender
+        # no tiene mensajes en esa sesión, consideramos esto una validación
+        # y devolvemos un error claro en lugar de una lista vacía.
+        if filters.sender:
+            session_total = await self.repository.count_by_session(session_id=filters.session_id)
+            if session_total > 0:
+                sender_total = await self.repository.count_by_session(
+                    session_id=filters.session_id, sender=filters.sender
+                )
+                if sender_total == 0:
+                    raise ValueError(
+                        f"sender '{filters.sender}' no pertenece a la sesión '{filters.session_id}'"
+                    )
+
+        messages = await self.repository.get_by_session(
             session_id=filters.session_id,
             limit=limit,
             offset=filters.offset or 0,
@@ -45,7 +56,7 @@ class GetMessagesUseCase:
         )
 
         # Obtener el total de mensajes (con los mismos filtros)
-        total = self.repository.count_by_session(
+        total = await self.repository.count_by_session(
             session_id=filters.session_id,
             sender=filters.sender,
         )
