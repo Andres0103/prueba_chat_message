@@ -47,7 +47,7 @@ source venv/bin/activate
 # 3. Instalar dependencias
 pip install -r requirements.txt
 
-# 4. 🔴 PASO CRÍTICO: Ejecutar migraciones de base de datos
+# 4. PASO CRÍTICO: Ejecutar migraciones de base de datos
 alembic revision --autogenerate -m "create messages table"
 alembic upgrade head
 
@@ -62,7 +62,7 @@ sqlite3.OperationalError: no such table: messages
 
 ---
 
-## 🗄️ Configuración de Base de Datos (OBLIGATORIO)
+## Configuración de Base de Datos (OBLIGATORIO)
 
 ### ¿Por qué necesito hacer esto?
 
@@ -177,7 +177,7 @@ python -m venv venv
 source venv/bin/activate      # Linux/macOS
 pip install -r requirements.txt
 
-# 3. 🔴 CRÍTICO: Migrar base de datos
+# 3. CRÍTICO: Migrar base de datos
 alembic revision --autogenerate -m "create messages table"
 alembic upgrade head
 
@@ -384,7 +384,20 @@ pytest tests/unit/test_domain/ -v
   }
 }
 ```
+### 3. Mensaje de Error
 
+**POST** `/api/v1/messages`
+**Response (400 Bad Request):**
+```json
+{
+  "status": "error",
+  "error": {
+  "code": "INVALID_FORMAT",
+  "message": "Formato de mensaje inválido",
+  "details": "El campo 'sender' debe ser 'user' o 'system'"
+  }
+}
+```
 ### Documentación Interactiva
 
 - **Swagger UI:** http://localhost:8000/docs
